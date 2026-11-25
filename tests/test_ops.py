@@ -60,7 +60,7 @@ class TestPdfforge(unittest.TestCase):
 
     def test_ops_list(self):
         ops = list_ops()
-        self.assertEqual(len(ops), 7)
+        self.assertEqual(len(ops), 8)
         for name in ("extract_pages", "remove_pages", "rotate", "watermark", "set_metadata", "encrypt", "compress"):
             self.assertIn(name, ops)
 
@@ -151,6 +151,25 @@ class TestPdfforge(unittest.TestCase):
         after = os.path.getsize(self.out("small.pdf"))
         self.assertEqual(out["pages"], 1)
         self.assertLess(after, before // 2)
+
+    def test_page_numbers(self):
+        out = apply_ops(self.pdf, self.out("numbered.pdf"), [{"op": "page_numbers"}])
+        self.assertEqual(out["pages"], 4)
+        text = extract_text(self.out("numbered.pdf"))["text"]
+        self.assertIn("Page 1 of 4", text)
+        self.assertIn("Page 4 of 4", text)
+        self.assertIn("Report page 1", text)
+
+    def test_page_numbers_custom_format(self):
+        apply_ops(self.pdf, self.out("numbered2.pdf"),
+                  [{"op": "page_numbers", "format": "{n}/{total}", "pages": [2]}])
+        text = extract_text(self.out("numbered2.pdf"))["text"]
+        self.assertIn("2/4", text)
+        self.assertNotIn("1/4", text)
+
+    def test_page_numbers_bad_format_fails(self):
+        with self.assertRaises(ValueError):
+            apply_ops(self.pdf, self.out("bad.pdf"), [{"op": "page_numbers", "format": "Page"}])
 
     def test_unknown_op_fails(self):
         with self.assertRaises(ValueError):

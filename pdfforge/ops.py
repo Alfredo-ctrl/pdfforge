@@ -137,6 +137,39 @@ def _compress(job, p):
     job.compress = True
 
 
+def _page_number_stamp(width, height, text, fontsize):
+    # one stamp page, built with reportlab, then merged onto the real page
+    from reportlab.lib.colors import Color
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(float(width), float(height)))
+    c.saveState()
+    c.setFillColor(Color(0.3, 0.3, 0.3))
+    c.setFont("Helvetica", fontsize)
+    c.drawCentredString(float(width) / 2, 24, text)
+    c.restoreState()
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return PdfReader(buf).pages[0]
+
+
+def _page_numbers(job, p):
+    fmt = p.get("format", "Page {n} of {total}")
+    if not isinstance(fmt, str) or "{n}" not in fmt or "{total}" not in fmt:
+        raise ValueError("'page_numbers': 'format' needs {n} and {total}, e.g. 'Page {n} of {total}'")
+    fontsize = _int("page_numbers", p, "fontsize", 10, lo=6, hi=48)
+    total = len(job.pages)
+    cache = {}
+    for i in _pages("page_numbers", p, total):
+        page = job.pages[i]
+        key = (float(page.mediabox.width), float(page.mediabox.height), i + 1)
+        if key not in cache:
+            cache[key] = _page_number_stamp(key[0], key[1], fmt.format(n=i + 1, total=total), fontsize)
+        page.merge_page(cache[key])
+
+
 OPS = {
     "extract_pages": {"description": "Keep only the listed pages (1-based), in that order.", "params": {"pages": {"type": "array", "items": {"type": "integer"}}}, "run": _extract_pages},
     "remove_pages": {"description": "Drop the listed pages (1-based).", "params": {"pages": {"type": "array", "items": {"type": "integer"}}}, "run": _remove_pages},
@@ -145,6 +178,7 @@ OPS = {
     "set_metadata": {"description": "Set the PDF title and/or author.", "params": {"title": {"type": "string"}, "author": {"type": "string"}}, "run": _set_metadata},
     "encrypt": {"description": "Lock the PDF with a password.", "params": {"password": {"type": "string"}, "owner_password": {"type": "string"}}, "run": _encrypt},
     "compress": {"description": "Smaller file: drop embedded images and dedupe identical objects.", "params": {}, "run": _compress},
+    "page_numbers": {"description": "Stamp 'Page N of M' at the bottom of every page (or the listed ones).", "params": {"format": {"type": "string", "default": "Page {n} of {total}"}, "fontsize": {"type": "integer", "default": 10, "min": 6, "max": 48}, "pages": {"type": "array", "items": {"type": "integer"}}}, "run": _page_numbers},
 }
 
 
