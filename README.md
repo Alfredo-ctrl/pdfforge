@@ -1,8 +1,8 @@
 # pdfforge
 
-PDF tools for AI agents. No GUI, no account, no vendor lock-in: a CLI, a Python API and an MCP server that any agent can drive — Muse, Antigravity, Codex, Claude Code, or a local model.
+Edit, join, split and build PDFs from the terminal, from Python, or over MCP.
 
-It works on .pdf files with pypdf and reportlab, so install the package and you are set.
+It works on .pdf files with pypdf and reportlab.
 
 ## Install
 
@@ -40,23 +40,24 @@ pdfforge create -o report.pdf --structure '{
 }'
 ```
 
-Output is JSON, so it is easy to parse:
+Running the edit above on a 3-page report prints:
 
 ```json
-{"output": "report-v2.pdf", "ops_applied": ["extract_pages", "watermark", "set_metadata"], "format": "pdf", "pages": 2, "encrypted": false, "size": 18341, "title": "Weekly report", "author": null}
+{"output": "report-v2.pdf", "ops_applied": ["extract_pages", "watermark", "set_metadata"], "format": "pdf", "encrypted": false, "size": 2886, "pages": 2, "title": "Weekly report", "author": null}
 ```
 
-## How an agent uses it
+## Operations
 
-You translate the user's words into ops. `pdfforge ops` lists every operation with its parameters, so there is nothing to guess. Examples:
+`pdfforge ops` lists them all with their parameters:
 
-- "keep only the first three pages" -> extract_pages
-- "stamp DRAFT on every page" -> watermark
-- "join these three PDFs" -> merge
-- "split it into one file per page" -> split
-- "what is in this file?" -> describe, read
-
-If the user asks for something that is not an op yet, add it — see CONTRIBUTING.md. That is the whole point: the tool grows with what people ask for.
+- `extract_pages` — keep only the listed pages (1-based), in that order
+- `remove_pages` — drop the listed pages
+- `rotate` — rotate pages 90, 180 or 270 degrees
+- `watermark` — stamp text diagonally on pages
+- `set_metadata` — set the PDF title and/or author
+- `encrypt` — lock the PDF with a password
+- `compress` — drop embedded images, dedupe identical objects
+- `page_numbers` — stamp "Page N of M" at the bottom of pages
 
 ## Use it from Python
 
@@ -99,4 +100,4 @@ It speaks MCP over stdio and exposes `edit_pdf`, `describe_pdf`, `read_pdf`, `me
 
 ## License
 
-MIT
+See [LICENSE](LICENSE).
