@@ -7,7 +7,7 @@ It works on .pdf files with pypdf and reportlab, so install the package and you 
 ## Install
 
 ```sh
-pip install pdfforge
+pip install git+https://github.com/Alfredo-ctrl/pdfforge.git
 ```
 
 ## Use it from the terminal
