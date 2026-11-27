@@ -1,4 +1,4 @@
-"""Minimal MCP server over stdio. No dependencies, plain JSON-RPC.
+"""MCP server over stdio. Hand-rolled JSON-RPC, no MCP SDK.
 
 Tools: edit_pdf, describe_pdf, read_pdf, merge_pdfs, split_pdf, create_pdf,
 list_operations.
@@ -89,25 +89,25 @@ TOOLS = [
 ]
 
 
-def _text(payload):
+def _text_result(payload):
     return {"content": [{"type": "text", "text": json.dumps(payload)}]}
 
 
-def _call(name, args):
+def _dispatch_tool(name, args):
     if name == "list_operations":
-        return _text(list_ops())
+        return _text_result(list_ops())
     if name == "describe_pdf":
-        return _text(describe(args["input"]))
+        return _text_result(describe(args["input"]))
     if name == "read_pdf":
-        return _text(extract_text(args["input"], args.get("pages")))
+        return _text_result(extract_text(args["input"], args.get("pages")))
     if name == "edit_pdf":
-        return _text(apply_ops(args["input"], args["output"], args["ops"]))
+        return _text_result(apply_ops(args["input"], args["output"], args["ops"]))
     if name == "merge_pdfs":
-        return _text(merge(args["inputs"], args["output"]))
+        return _text_result(merge(args["inputs"], args["output"]))
     if name == "split_pdf":
-        return _text(split(args["input"], args["output_dir"], args.get("every", 1)))
+        return _text_result(split(args["input"], args["output_dir"], args.get("every", 1)))
     if name == "create_pdf":
-        return _text(create_pdf(args["structure"], args["output"]))
+        return _text_result(create_pdf(args["structure"], args["output"]))
     raise ValueError(f"unknown tool '{name}'")
 
 
@@ -137,7 +137,7 @@ def run():
             resp = {"result": {"tools": TOOLS}}
         elif method == "tools/call":
             try:
-                resp = {"result": _call(req["params"]["name"], req["params"].get("arguments", {}))}
+                resp = {"result": _dispatch_tool(req["params"]["name"], req["params"].get("arguments", {}))}
             except Exception as e:
                 resp = {"result": {"content": [{"type": "text", "text": json.dumps({"error": str(e)})}], "isError": True}}
         else:

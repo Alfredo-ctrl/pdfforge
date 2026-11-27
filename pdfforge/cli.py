@@ -1,4 +1,4 @@
-"""pdfforge command line. Built for agents: JSON in, JSON out."""
+"""pdfforge command line. JSON in, JSON out."""
 
 import argparse
 import json
@@ -16,12 +16,12 @@ from . import (
 )
 
 
-def _fail(msg):
+def _exit_error(msg):
     print(json.dumps({"error": msg}), file=sys.stderr)
     raise SystemExit(1)
 
 
-def _ok(payload):
+def _print_result(payload):
     print(json.dumps(payload))
 
 
@@ -30,20 +30,20 @@ def cmd_edit(args):
         ops = json.loads(args.ops)
         result = apply_ops(args.input, args.output, ops)
     except (ValueError, RuntimeError, json.JSONDecodeError) as e:
-        _fail(str(e))
-    _ok(result)
+        _exit_error(str(e))
+    _print_result(result)
 
 
 def cmd_ops(args):
-    _ok(list_ops())
+    _print_result(list_ops())
 
 
 def cmd_describe(args):
     try:
         result = describe(args.input)
     except ValueError as e:
-        _fail(str(e))
-    _ok(result)
+        _exit_error(str(e))
+    _print_result(result)
 
 
 def cmd_read(args):
@@ -53,24 +53,24 @@ def cmd_read(args):
             pages = [int(x) for x in args.pages.split(",")]
         result = extract_text(args.input, pages)
     except (ValueError, RuntimeError) as e:
-        _fail(str(e))
-    _ok(result)
+        _exit_error(str(e))
+    _print_result(result)
 
 
 def cmd_merge(args):
     try:
         result = merge(args.inputs, args.output)
     except ValueError as e:
-        _fail(str(e))
-    _ok(result)
+        _exit_error(str(e))
+    _print_result(result)
 
 
 def cmd_split(args):
     try:
         result = split(args.input, args.output, args.every)
     except ValueError as e:
-        _fail(str(e))
-    _ok(result)
+        _exit_error(str(e))
+    _print_result(result)
 
 
 def cmd_create(args):
@@ -78,8 +78,8 @@ def cmd_create(args):
         structure = json.loads(args.structure)
         result = create_pdf(structure, args.output)
     except (ValueError, json.JSONDecodeError) as e:
-        _fail(str(e))
-    _ok(result)
+        _exit_error(str(e))
+    _print_result(result)
 
 
 def cmd_mcp(args):
@@ -89,7 +89,7 @@ def cmd_mcp(args):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="pdfforge", description="PDF tools for AI agents.")
+    parser = argparse.ArgumentParser(prog="pdfforge", description="Edit, join, split and build PDFs.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 

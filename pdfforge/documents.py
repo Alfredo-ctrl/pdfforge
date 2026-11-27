@@ -3,14 +3,22 @@
 import os
 
 from pypdf import PdfReader, PdfWriter
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 
-def describe(path):
+def _open_pdf(path, caller):
+    """Validate *path* exists and is a .pdf, then return a PdfReader."""
     if not os.path.exists(path):
         raise ValueError(f"no such file: '{path}'")
     if os.path.splitext(path)[1].lower() != ".pdf":
-        raise ValueError("describe only reads .pdf files")
-    reader = PdfReader(path)
+        raise ValueError(f"{caller} only reads .pdf files")
+    return PdfReader(path)
+
+
+def describe(path):
+    reader = _open_pdf(path, "describe")
     info = {"format": "pdf", "encrypted": reader.is_encrypted, "size": os.path.getsize(path)}
     if reader.is_encrypted:
         info["pages"] = None
@@ -25,11 +33,7 @@ def describe(path):
 
 
 def extract_text(path, pages=None):
-    if not os.path.exists(path):
-        raise ValueError(f"no such file: '{path}'")
-    if os.path.splitext(path)[1].lower() != ".pdf":
-        raise ValueError("extract_text only reads .pdf files")
-    reader = PdfReader(path)
+    reader = _open_pdf(path, "extract_text")
     if reader.is_encrypted:
         raise ValueError("this pdf is encrypted, decrypt it first")
     if pages:
@@ -86,9 +90,6 @@ def split(input_path, output_dir, every=1):
 def create_pdf(structure, output):
     if not isinstance(structure, dict):
         raise ValueError("structure has to be a dict, e.g. {\"title\": \"Report\", \"sections\": [...]}")
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
     styles = getSampleStyleSheet()
     title = structure.get("title", "")
