@@ -9,7 +9,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from pdfforge import apply_ops, create_pdf, describe, extract_text, list_ops, merge, split  # noqa: E402
+from pdfforge import OPS, apply_ops, create_pdf, describe, extract_text, list_ops, merge, split  # noqa: E402
 
 
 def _make_pdf(path, pages=4):
@@ -60,9 +60,10 @@ class TestPdfforge(unittest.TestCase):
 
     def test_ops_list(self):
         ops = list_ops()
-        self.assertEqual(len(ops), 8)
-        for name in ("extract_pages", "remove_pages", "rotate", "watermark", "set_metadata", "encrypt", "compress"):
-            self.assertIn(name, ops)
+        self.assertEqual(set(ops), set(OPS))
+        for name, spec in ops.items():
+            self.assertIn("description", spec)
+            self.assertIn("params", spec)
 
     def test_describe(self):
         info = describe(self.pdf)
@@ -244,17 +245,25 @@ class TestPdfforge(unittest.TestCase):
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
                 {"jsonrpc": "2.0", "id": 3, "method": "tools/call",
                  "params": {"name": "list_operations", "arguments": {}}},
+                {"jsonrpc": "2.0", "id": 4, "method": "tools/call",
+                 "params": {"name": "describe_pdf", "arguments": {"input": self.pdf}}},
+                {"jsonrpc": "2.0", "id": 5, "method": "tools/call",
+                 "params": {"name": "nope", "arguments": {}}},
             ]
             for req in reqs:
                 proc.stdin.write(json.dumps(req) + "\n")
             proc.stdin.flush()
-            lines = [proc.stdout.readline() for _ in range(3)]
+            lines = [proc.stdout.readline() for _ in range(5)]
             init = json.loads(lines[0])
             self.assertEqual(init["result"]["serverInfo"]["name"], "pdfforge")
             tools = json.loads(lines[1])["result"]["tools"]
             self.assertIn("merge_pdfs", [t["name"] for t in tools])
             payload = json.loads(json.loads(lines[2])["result"]["content"][0]["text"])
             self.assertIn("watermark", payload)
+            described = json.loads(json.loads(lines[3])["result"]["content"][0]["text"])
+            self.assertEqual(described["pages"], 4)
+            err = json.loads(lines[4])
+            self.assertTrue(err["result"]["isError"])
         finally:
             proc.stdin.close()
             proc.wait(timeout=10)
